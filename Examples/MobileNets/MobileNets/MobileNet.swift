@@ -46,6 +46,7 @@ class MobileNet: NeuralNetwork {
     var x = input
         --> Resize(width: resolution, height: resolution)
         --> Custom(Preprocessing(device: device), channels: 3)
+        // mobilenet_v1_224_tflite uses relu6
         --> Convolution(kernel: (3, 3), channels: channels, stride: (2, 2), activation: relu, name: "conv1")
         --> DepthwiseConvolution(kernel: (3, 3), activation: relu, name: "conv2_1_dw")
         --> PointwiseConvolution(channels: channels*2, activation: relu, name: "conv2_1_sep")

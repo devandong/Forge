@@ -44,7 +44,9 @@ public class VideoCapture: NSObject {
   let captureSession = AVCaptureSession()
   let videoOutput = AVCaptureVideoDataOutput()
 	let photoOutput = AVCapturePhotoOutput()
+  // devandong: try concurrent queue
   let queue = DispatchQueue(label: "net.machinethink.camera-queue")
+  //let queue = DispatchQueue(label: "net.machinethink.camera-queue", attributes: .concurrent)
 
   var lastTimestamp = CMTime()
 
@@ -85,6 +87,8 @@ public class VideoCapture: NSObject {
     if captureSession.canAddInput(videoInput) {
       captureSession.addInput(videoInput)
     }
+    // set max fps
+    chooseFPS(captureDevice: captureDevice)
 
     let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
     previewLayer.videoGravity = AVLayerVideoGravity.resizeAspect
@@ -113,6 +117,47 @@ public class VideoCapture: NSObject {
     captureSession.commitConfiguration()
     return true
   }
+  
+    func chooseFPS(captureDevice: AVCaptureDevice) {
+        // set camera fps
+        // configure
+        do {
+            try captureDevice.lockForConfiguration()
+        } catch _ {
+            print("failed locking device")
+        }
+        
+        var maxFps: Double = 0
+        var finalFormat = captureDevice.activeFormat
+        // print default format
+        print("default active format:", captureDevice.activeFormat)
+        for format in captureDevice.formats {
+            let ranges = format.videoSupportedFrameRateRanges
+            //print(format.description)
+            for i in 0..<ranges.count {
+                let range = ranges[i]
+                //let min_fps = range.minFrameRate
+                let max_fps = range.maxFrameRate
+                //let min_duration = range.minFrameDuration
+                //let max_duration = range.maxFrameDuration
+                //print("min fps:", min_fps, "max fps:", max_fps, "min_dur:", min_duration, "max_dua:", max_duration)
+                if max_fps > maxFps {
+                    maxFps = max_fps
+                    finalFormat = format
+                }
+            }
+        }
+        
+        if maxFps != 0 {
+            let timeValue = Int64(1200.0 / maxFps)
+            let timeScale: Int32 = 1200
+            print("switch to format:", finalFormat)
+            captureDevice.activeFormat = finalFormat
+            captureDevice.activeVideoMinFrameDuration = CMTimeMake(timeValue, timeScale)
+            captureDevice.activeVideoMaxFrameDuration = CMTimeMake(timeValue, timeScale)
+            captureDevice.unlockForConfiguration()
+        }
+    }
 
   public func start() {
     if !captureSession.isRunning {
@@ -195,7 +240,7 @@ extension VideoCapture: AVCaptureVideoDataOutputSampleBufferDelegate {
   }
 
   public func captureOutput(_ output: AVCaptureOutput, didDrop sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-    print("dropped frame")
+    //print("dropped frame")
   }
 }
 

@@ -119,6 +119,7 @@ public class Model {
     self.parameterCallback = parameterCallback
 
     do {
+      // devan: tensor list from input to output
       tensors = topologicalSort(from: input)
 
       try completeGraph()
@@ -126,6 +127,7 @@ public class Model {
 
       imageDescriptorList = Array(imageDescriptors.values)
       for imageDesc in imageDescriptorList {
+        // devan: set all storage mode to private
         imageDesc.storageMode = .private
       }
 
@@ -350,6 +352,8 @@ public class Model {
         guard let desc = imageDescriptors[tensor.shape] else {
           fatalError("Error: no image descriptor found for shape \(tensor.shape)")
         }
+        // devan: the underlying texture may not be allocated after the following calling of method,
+        // when accesing the texture attribute of image, it will be allocated.
         let image = MPSTemporaryImage(commandBuffer: commandBuffer,
                                       imageDescriptor: desc)
         image.readCount = tensor.readCount

@@ -28,6 +28,8 @@ public class FPSCounter {
 
   var frames = 0
   var startTime: CFTimeInterval = 0
+  // devandong:
+  var totalFrames = 0
 
   public func start() {
     frames = 0
@@ -36,6 +38,7 @@ public class FPSCounter {
 
   public func frameCompleted() {
     frames += 1
+    totalFrames += 1
     let now = CACurrentMediaTime()
     let elapsed = now - startTime
     if elapsed > 0.1 {

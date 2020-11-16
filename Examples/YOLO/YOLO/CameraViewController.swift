@@ -81,6 +81,7 @@ class CameraViewController: UIViewController {
       self.startupGroup.leave()
     }
 
+    //devan: the thread will stop here waiting work inside to complete.
     startupGroup.notify(queue: .main) {
       // Add the bounding box layers to the UI, on top of the video preview.
       for box in self.boundingBoxes {

@@ -4,7 +4,7 @@ import MetalPerformanceShaders
 import CoreMedia
 import Forge
 
-let MaxBuffersInFlight = 3   // use triple buffering
+let MaxBuffersInFlight = 5   // use triple buffering
 
 /*
   Using Apple's implementation of Inception v3.
@@ -28,6 +28,14 @@ class CameraViewController: UIViewController {
   var commandQueue: MTLCommandQueue!
   var runner: Runner!
   var network: Inception3!
+  // actual # of buffers
+  var kBuffers: Int = 1
+  // # of frames to process
+  var kFramesToProcess: Int = 1000+1
+  var frameIdx:Int = 0
+  // processing start/end time point
+  var startTime:CFTimeInterval = 0
+  var timeElapsed:CFTimeInterval = 0
 
   var startupGroup = DispatchGroup()
   let fpsCounter = FPSCounter()
@@ -106,14 +114,14 @@ class CameraViewController: UIViewController {
       return
     }
 
-    runner = Runner(commandQueue: commandQueue, inflightBuffers: MaxBuffersInFlight)
+    runner = Runner(commandQueue: commandQueue, inflightBuffers: kBuffers)
 
     // Because it may take a few seconds to load the network's parameters,
     // perform the construction of the neural network in the background.
     DispatchQueue.global().async {
 
       timeIt("Setting up neural network") {
-        self.network = Inception3(device: self.device, inflightBuffers: MaxBuffersInFlight)
+        self.network = Inception3(device: self.device, inflightBuffers: self.kBuffers)
       }
 
       DispatchQueue.main.async(execute: completion)
@@ -136,6 +144,9 @@ class CameraViewController: UIViewController {
 
       self.fpsCounter.frameCompleted()
       self.timeLabel.text = String(format: "%.1f FPS (latency: %.5f sec)", self.fpsCounter.fps, result.latency)
+      self.frameIdx += 1
+      // devandong: print time
+      //print(NSString(format:"%d, %.3f", self.fpsCounter.totalFrames, result.latency*1000))
     }
   }
 
@@ -159,6 +170,16 @@ extension CameraViewController: VideoCaptureDelegate {
     // while the serial dispatch queue is blocked.
     if let texture = texture {
       //timeIt("Encoding") {
+        if (frameIdx == 1) {
+            startTime = CACurrentMediaTime();
+        } else if (frameIdx == kFramesToProcess){
+            timeElapsed = CACurrentMediaTime() - startTime;
+            print(NSString(format:"Processed: %d frames, cost: %.3f ms, Stop.", frameIdx, timeElapsed*1000))
+        }
+        // devandong: if the number of processed frames reaches the threshold, stops
+        else if (frameIdx > kFramesToProcess) {
+            print(NSString(format:"Processed: %d frames, cost: %.3f ms, Stop.", frameIdx, timeElapsed*1000))
+        }
         predict(texture: texture)
       //}
     }
